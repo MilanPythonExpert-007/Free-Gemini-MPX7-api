@@ -1,10 +1,19 @@
 const A4F_API_KEY = process.env.A4F_API_KEY || "ddc-a4f-9d06c9a8b0ad4098959c676b16336dac";
 
-global.issuedKeys = global.issuedKeys || [];
-global.revokedKeys = global.revokedKeys || [];
+// Import the same storage from admin.js
+// Note: This is a workaround for serverless environments
+// In a real application, you'd want to use a proper database
+let issuedKeys = [];
+let revokedKeys = [];
+
+// This function will be called by the Telegram bot to sync keys
+export function syncKeys(activeKeys, revokedKeysList) {
+  issuedKeys = activeKeys;
+  revokedKeys = revokedKeysList;
+}
 
 function isValidKey(key) {
-  return global.issuedKeys.includes(key) && !global.revokedKeys.includes(key);
+  return issuedKeys.includes(key) && !revokedKeys.includes(key);
 }
 
 export default async function handler(req, res) {
@@ -41,4 +50,4 @@ export default async function handler(req, res) {
   } catch (err) {
     res.status(500).json({ error: "Proxy failed", details: err.message });
   }
-  }
+      }
