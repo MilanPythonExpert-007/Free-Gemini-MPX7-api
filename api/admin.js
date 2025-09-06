@@ -1,6 +1,6 @@
 import crypto from "crypto";
 
-// Use a simple in-memory store
+// Simple in-memory storage
 let issuedKeys = [];
 let revokedKeys = [];
 
@@ -14,16 +14,18 @@ export default async function handler(req, res) {
   const authHeader = req.headers["authorization"];
   const ADMIN_SECRET = process.env.ADMIN_SECRET || "super-secret-admin";
   
+  // Check admin authentication
   if (!authHeader || authHeader.replace("Bearer ", "") !== ADMIN_SECRET) {
     return res.status(403).json({ error: "Unauthorized admin" });
   }
 
+  // Handle different HTTP methods
   if (req.method === "POST") {
     // Generate new key
     const newKey = generateKey();
     issuedKeys.push(newKey);
     
-    // Remove revoked status if it was previously revoked
+    // Remove from revoked if it was there before
     revokedKeys = revokedKeys.filter(k => k !== newKey);
     
     return res.status(201).json({
@@ -38,7 +40,7 @@ export default async function handler(req, res) {
   }
 
   if (req.method === "GET") {
-    // List keys
+    // List all keys
     return res.status(200).json({
       active: issuedKeys.filter(k => !revokedKeys.includes(k)),
       revoked: revokedKeys
@@ -60,5 +62,6 @@ export default async function handler(req, res) {
     return res.status(200).json({ success: true, revoked: key });
   }
 
+  // Method not allowed
   return res.status(405).json({ error: "Method not allowed" });
 }
