@@ -1,17 +1,19 @@
 import crypto from "crypto";
 
-const ADMIN_SECRET = process.env.ADMIN_SECRET || "super-secret-admin"; // Admin secret
-global.issuedKeys = global.issuedKeys || [];
-global.revokedKeys = global.revokedKeys || [];
+// Use a simple in-memory store
+let issuedKeys = [];
+let revokedKeys = [];
 
 // Generate random key
 function generateKey() {
-  const random = crypto.randomBytes(32).toString("hex"); // long key
+  const random = crypto.randomBytes(32).toString("hex");
   return `mpx-7-ai-${random}`;
 }
 
 export default async function handler(req, res) {
   const authHeader = req.headers["authorization"];
+  const ADMIN_SECRET = process.env.ADMIN_SECRET || "super-secret-admin";
+  
   if (!authHeader || authHeader.replace("Bearer ", "") !== ADMIN_SECRET) {
     return res.status(403).json({ error: "Unauthorized admin" });
   }
@@ -19,7 +21,11 @@ export default async function handler(req, res) {
   if (req.method === "POST") {
     // Generate new key
     const newKey = generateKey();
-    global.issuedKeys.push(newKey);
+    issuedKeys.push(newKey);
+    
+    // Remove revoked status if it was previously revoked
+    revokedKeys = revokedKeys.filter(k => k !== newKey);
+    
     return res.status(201).json({
       success: true,
       api_key: newKey,
@@ -34,8 +40,8 @@ export default async function handler(req, res) {
   if (req.method === "GET") {
     // List keys
     return res.status(200).json({
-      active: global.issuedKeys.filter(k => !global.revokedKeys.includes(k)),
-      revoked: global.revokedKeys
+      active: issuedKeys.filter(k => !revokedKeys.includes(k)),
+      revoked: revokedKeys
     });
   }
 
@@ -43,12 +49,12 @@ export default async function handler(req, res) {
     const { key } = req.query;
     if (!key) return res.status(400).json({ error: "Missing key to revoke" });
 
-    if (!global.issuedKeys.includes(key)) {
+    if (!issuedKeys.includes(key)) {
       return res.status(404).json({ error: "Key not found" });
     }
 
-    if (!global.revokedKeys.includes(key)) {
-      global.revokedKeys.push(key);
+    if (!revokedKeys.includes(key)) {
+      revokedKeys.push(key);
     }
 
     return res.status(200).json({ success: true, revoked: key });
