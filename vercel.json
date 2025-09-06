@@ -5,5 +5,9 @@
   ],
   "routes": [
     { "src": "/api/(.*)", "dest": "/api/$1" }
-  ]
+  ],
+  "env": {
+    "ADMIN_SECRET": "super-secret-admin",
+    "A4F_API_KEY": "ddc-a4f-9d06c9a8b0ad4098959c676b16336dac"
+  }
 }
